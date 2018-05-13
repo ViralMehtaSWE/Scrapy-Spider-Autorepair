@@ -1,1 +1,0 @@
-# Scrapy-Spider-Autorepair
