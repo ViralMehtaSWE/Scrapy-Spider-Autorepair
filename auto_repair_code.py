@@ -211,7 +211,6 @@ def show_demo():
         print('#'*50)
 
 
-
 def show_auto_repair():
     print('#'*50)
     print("\nBEGINNING OF AUTO-REPAIR EXAMPLE\n")
@@ -224,6 +223,7 @@ def show_auto_repair():
     print("repaired_query_tree =", tostring(repaired_query_tree, pretty_print=True).decode('utf-8'))
     print("\nEND OF AUTO-REPAIR EXAMPLE\n")
     print('#'*50)
+
 
 show_demo()
 show_auto_repair()
