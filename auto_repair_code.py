@@ -39,8 +39,6 @@ class Page:
             if(state == 0):
                 lst.append(ch)
                 if ch == '<':
-                    temp = lst.pop()
-                    lst.append(' ' + '<')
                     state = 1
             elif(state == 1):
                 if ch != ' ':
@@ -49,7 +47,7 @@ class Page:
             elif(state == 2):
                 if ch == '>':
                     state = 0
-                    lst.append(ch + ' ')
+                    lst.append(ch)
                 elif ch != ' ':
                     lst.append(ch)
                 else:
@@ -57,7 +55,7 @@ class Page:
             elif(state == 3):
                 if ch == '>':
                     state = 0
-                    lst.append(ch + ' ')
+                    lst.append(ch)
         code = ''.join(lst)
         return code
 
@@ -66,8 +64,6 @@ class Page:
         s2 = self.remove_br(s2)
         s1 = ''.join([i for i in list(s1) if i not in whitespace])
         s2 = ''.join([i for i in list(s2) if i not in whitespace])
-        #print('s1 =', s1)
-        #print('s2 =', s2)
         if len(s1) > len(s2):
             s1, s2 = s2, s1
 
@@ -80,8 +76,6 @@ class Page:
                 else:
                     distances_.append(1 + min((distances[i1], distances[i1 + 1], distances_[-1])))
             distances = distances_
-        #print('edit_distance =', distances[-1])
-        #print("#"*70)
         return distances[-1]
 
     def retrieve_subtree(self, tree, path):
@@ -89,7 +83,17 @@ class Page:
         tree = tree.getroot()
         for i in range(n):
             tree = tree[path[i]]
-        return tree
+        return deepcopy(tree)
+
+    def assign(self, tree, subtree, path):
+        tree = deepcopy(tree)
+        ptr = tree
+        n = len(path)
+        tree = tree.getroot()
+        for i in range(n-1):
+            tree = tree[path[i]]
+        tree[path[n - 1]] = deepcopy(subtree)
+        return ptr
 
     def dfs(self, root, mn, str_subtree):
         edit_dis = self.get_edit_distance(str_subtree[0], \
@@ -129,6 +133,12 @@ class Page:
         self.xpath_gen_path = []
         self.xpath_dfs(subtree, tree, xpaths)
         return xpaths
+
+    def get_repaired_subtree(self, xpaths, query_tree, tree):
+        for xpath in xpaths:
+            retrieved_subtree = self.retrieve_subtree(tree, xpath[1])
+            query_tree = self.assign(query_tree, retrieved_subtree, xpath[0])
+        return query_tree
     
     
 class OldPage(Page):
@@ -182,7 +192,7 @@ class Sub_Tree(Page):
 def show_demo():
     for i in range(1, 4):
         print('#'*50)
-        print("\nSTART OF EXAMPLE " + str(i) + "\n")
+        print("\nBEGINNING OF EXAMPLE " + str(i) + "\n")
         path1 = "Examples/" + str(i) + ".html"
         path2 = "Examples/" + "query" + str(i) + ".html"
         tree_old_page = OldPage(path1)
@@ -200,6 +210,20 @@ def show_demo():
         print("\nEND OF EXAMPLE " + str(i) + "\n")
         print('#'*50)
 
-show_demo()
 
-    
+
+def show_auto_repair():
+    print('#'*50)
+    print("\nBEGINNING OF AUTO-REPAIR EXAMPLE\n")
+    tree_obj1 = OldPage("Examples/New Layout Page1.html")
+    tree_obj2 = OldPage("Examples/New Layout Page2.html")
+    query_tree_obj = Sub_Tree("Examples/Extracted Subtree from Old Layout.html")
+    xpaths = tree_obj1.generate_XPaths(query_tree_obj.tree_without_attr, tree_obj1.tree_without_attr)
+    repaired_query_tree = tree_obj2.get_repaired_subtree(xpaths, query_tree_obj.tree, tree_obj2.tree)
+    print("xpaths =", xpaths)
+    print("repaired_query_tree =", tostring(repaired_query_tree, pretty_print=True).decode('utf-8'))
+    print("\nEND OF AUTO-REPAIR EXAMPLE\n")
+    print('#'*50)
+
+show_demo()
+show_auto_repair()
