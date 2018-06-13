@@ -1,14 +1,23 @@
-from lxml.etree     import HTMLParser
-from lxml.etree     import XMLParser
-from lxml.etree     import HTML
-from lxml.etree     import XML
-from lxml.etree     import tostring
-from lxml.etree     import parse
-from copy           import deepcopy
-from io             import StringIO
-from string         import whitespace
-from math           import inf
-from re             import sub
+from lxml.etree import HTMLParser
+from lxml.etree import XMLParser
+from lxml.etree import HTML
+from lxml.etree import XML
+from lxml.etree import tostring
+from lxml.etree import parse
+from copy import deepcopy
+from io import StringIO
+from string import whitespace
+from math import inf
+from re import sub
+from enum import Enum
+
+
+class State(Enum):
+    wait_for_open_angular_bracket = 0
+    wait_for_non_whitespace = 1
+    wait_for_whitespace_or_close_angular_bracket = 2
+    wait_for_close_angular_bracket = 3
+
 
 class Page:
     path_to_data = None
@@ -27,34 +36,32 @@ class Page:
         return broken_code
 
     def remove_br(self, code):
-        code = sub(r"< */ *br *>", "", code)
-        code = sub(r"< *br */ *>", "", code)
-        code = sub(r"< *br *>", "", code)
+        code = sub(r"<\s*br\s*>|<\s*br\s*/\s*>|<\s*/\s*br\s*>", "", code)
         return code
 
     def remove_tag_attributes(self, code):
         lst = []
-        state = 0
+        state = State.wait_for_open_angular_bracket
         for ch in code:
-            if(state == 0):
+            if(state == State.wait_for_open_angular_bracket):
                 lst.append(ch)
                 if ch == '<':
-                    state = 1
-            elif(state == 1):
-                if ch != ' ':
+                    state = State.wait_for_non_whitespace
+            elif(state == State.wait_for_non_whitespace):
+                if not ch.isspace():
                     lst.append(ch)
-                    state = 2
-            elif(state == 2):
+                    state = State.wait_for_whitespace_or_close_angular_bracket
+            elif(state == State.wait_for_whitespace_or_close_angular_bracket):
                 if ch == '>':
-                    state = 0
+                    state = State.wait_for_open_angular_bracket
                     lst.append(ch)
-                elif ch != ' ':
+                elif not ch.isspace():
                     lst.append(ch)
                 else:
-                    state = 3
-            elif(state == 3):
+                    state = State.wait_for_close_angular_bracket
+            elif(state == State.wait_for_close_angular_bracket):
                 if ch == '>':
-                    state = 0
+                    state = State.wait_for_open_angular_bracket
                     lst.append(ch)
         code = ''.join(lst)
         return code
@@ -74,7 +81,8 @@ class Page:
                 if c1 == c2:
                     distances_.append(distances[i1])
                 else:
-                    distances_.append(1 + min((distances[i1], distances[i1 + 1], distances_[-1])))
+                    distances_.append(1 + min((distances[i1],
+                                      distances[i1 + 1], distances_[-1])))
             distances = distances_
         return distances[-1]
 
@@ -96,8 +104,9 @@ class Page:
         return ptr
 
     def dfs(self, root, mn, str_subtree):
-        edit_dis = self.get_edit_distance(str_subtree[0], \
-                    tostring(root, pretty_print=False).decode('utf-8'))
+        edit_dis = self.get_edit_distance(str_subtree[0],
+                                          tostring(root,
+                                          pretty_print=False).decode('utf-8'))
         if(edit_dis < mn[0]):
             mn[0] = edit_dis
             self.path_to_subtree = self.curr_path[:]
@@ -111,7 +120,8 @@ class Page:
         self.path_to_subtree = []
         self.curr_path = []
         mn = [inf]
-        str_subtree = str(tostring(subtree, pretty_print=False).decode('utf-8'))
+        str_subtree = str(tostring(subtree,
+                          pretty_print=False).decode('utf-8'))
         str_subtree = [str_subtree]
         self.dfs(tree, mn, str_subtree)
         self.curr_path = []
@@ -139,53 +149,55 @@ class Page:
             retrieved_subtree = self.retrieve_subtree(tree, xpath[1])
             query_tree = self.assign(query_tree, retrieved_subtree, xpath[0])
         return query_tree
-    
-    
+
+
 class OldPage(Page):
     tree = None
     tree_without_attr = None
-    
+
     def __init__(self, path_to_data):
         Page.__init__(self, path_to_data)
         self.broken_code = self.get_data(path_to_data)
-        self.code = self.get_repaired_html(broken_html = self.broken_code)
-        self.tree_without_attr = self.get_tree_without_attr(code = self.code)
+        self.code = self.get_repaired_html(broken_html=self.broken_code)
+        self.tree_without_attr = self.get_tree_without_attr(code=self.code)
 
     def get_repaired_html(self, broken_html):
         parser = HTMLParser()
         tree = parse(StringIO(broken_html), parser)
-        self.code = str(tostring(tree.getroot(), pretty_print=False).decode('utf-8'))
+        self.code = str(tostring(tree.getroot(),
+                        pretty_print=False).decode('utf-8'))
         self.tree = tree
         return self.code
 
     def get_tree_without_attr(self, code):
         parser = HTMLParser(recover=True)
-        code_without_attr = self.remove_tag_attributes(code = self.code)
-        self.tree_without_attr = HTML(code_without_attr, parser = parser)
+        code_without_attr = self.remove_tag_attributes(code=self.code)
+        self.tree_without_attr = HTML(code_without_attr, parser=parser)
         return self.tree_without_attr
-    
+
 
 class Sub_Tree(Page):
     tree = None
     tree_without_attr = None
-    
+
     def __init__(self, path_to_data):
         Page.__init__(self, path_to_data)
         self.broken_code = self.get_data(path_to_data)
-        self.code = self.get_repaired_xml(broken_xml = self.broken_code)
-        self.tree_without_attr = self.get_tree_without_attr(code = self.code)
+        self.code = self.get_repaired_xml(broken_xml=self.broken_code)
+        self.tree_without_attr = self.get_tree_without_attr(code=self.code)
 
     def get_repaired_xml(self, broken_xml):
         parser = XMLParser(recover=True)
         tree = parse(StringIO(broken_xml), parser)
-        self.code = str(tostring(tree.getroot(),pretty_print=False).decode('utf-8'))
+        self.code = str(tostring(tree.getroot(),
+                        pretty_print=False).decode('utf-8'))
         self.tree = tree
         return self.code
 
     def get_tree_without_attr(self, code):
         parser = XMLParser(recover=True)
-        code_without_attr = self.remove_tag_attributes(code = self.code)
-        self.tree_without_attr = XML(code_without_attr, parser = parser)
+        code_without_attr = self.remove_tag_attributes(code=self.code)
+        self.tree_without_attr = XML(code_without_attr, parser=parser)
         return self.tree_without_attr
 
 
@@ -198,14 +210,20 @@ def show_demo():
         tree_old_page = OldPage(path1)
         query_tree_obj = Sub_Tree(path2)
         print('Testing subtree extraction for example ' + str(i) + ' ...')
-        path, mn = tree_old_page.get_subtree_path(query_tree_obj.tree_without_attr, tree_old_page.tree_without_attr)
-        subtree_retrieved = tree_old_page.retrieve_subtree(tree_old_page.tree, path)
+        path, mn = tree_old_page.get_subtree_path(query_tree_obj.
+                                                  tree_without_attr,
+                                                  tree_old_page.
+                                                  tree_without_attr)
+        subtree_retrieved = tree_old_page.retrieve_subtree(tree_old_page.tree,
+                                                           path)
         print("Path is:", path, 'edit_distance:', mn)
         print("subtree found is:")
         print(tostring(subtree_retrieved, pretty_print=False).decode('utf-8'))
         print("-"*20)
         print('Testing XPath Generation for example ' + str(i) + ' ...')
-        xpaths = tree_old_page.generate_XPaths(query_tree_obj.tree_without_attr, tree_old_page.tree_without_attr)
+        xpaths = tree_old_page.generate_XPaths(query_tree_obj.
+                                               tree_without_attr,
+                                               tree_old_page.tree_without_attr)
         print('xpaths =', xpaths)
         print("\nEND OF EXAMPLE " + str(i) + "\n")
         print('#'*50)
@@ -216,11 +234,17 @@ def show_auto_repair():
     print("\nBEGINNING OF AUTO-REPAIR EXAMPLE\n")
     tree_obj1 = OldPage("Examples/New Layout Page1.html")
     tree_obj2 = OldPage("Examples/New Layout Page2.html")
-    query_tree_obj = Sub_Tree("Examples/Extracted Subtree from Old Layout.html")
-    xpaths = tree_obj1.generate_XPaths(query_tree_obj.tree_without_attr, tree_obj1.tree_without_attr)
-    repaired_query_tree = tree_obj2.get_repaired_subtree(xpaths, query_tree_obj.tree, tree_obj2.tree)
+    query_tree_obj = Sub_Tree(
+                              "Examples/Extracted Subtree from Old Layout.html"
+                              )
+    xpaths = tree_obj1.generate_XPaths(query_tree_obj.tree_without_attr,
+                                       tree_obj1.tree_without_attr)
+    repaired_query_tree = tree_obj2.get_repaired_subtree(xpaths,
+                                                         query_tree_obj.tree,
+                                                         tree_obj2.tree)
     print("xpaths =", xpaths)
-    print("repaired_query_tree =", tostring(repaired_query_tree, pretty_print=True).decode('utf-8'))
+    print("repaired_query_tree =", tostring(repaired_query_tree,
+          pretty_print=True).decode('utf-8'))
     print("\nEND OF AUTO-REPAIR EXAMPLE\n")
     print('#'*50)
 
