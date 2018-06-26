@@ -10,6 +10,8 @@ from string import whitespace
 from math import inf
 from re import sub
 from enum import Enum
+from sklearn.metrics.pairwise import cosine_similarity
+from scipy.optimize import linear_sum_assignment
 
 
 class State(Enum):
@@ -150,6 +152,142 @@ class Page:
             query_tree = self.assign(query_tree, retrieved_subtree, xpath[0])
         return query_tree
 
+    def compress_tree(self, tree, parent, idx_of_child):
+        n = len(root)
+        for i in range(n):
+            compress_tree(self, root[i], root, i)
+        
+        if parent != -1:
+            if len(tree) == 1: 
+                parent[idx_of_child] = tree[0]
+        else:
+            if len(tree) == 1:
+                return tree[0]
+            else:
+                return tree
+
+    def get_compressed_tree(self, tree):
+        compressed_tree = deepcopy(tree)
+        return compress_tree(compressed_tree, -1, 0)
+    
+    def get_k_nearest_leaves(self, subtree, k):
+        # need to do BFS from subtree until the k nearest leaves are found.
+        """This function returns a list of tuples of type (leaf, distance_from_subtree)."""
+        queue = []
+        visited = set([])
+        distances = dict()
+        distances[subtree] = 0
+        if subtree.getparent is not None:
+            queue.append(subtree.getparent())
+        k_nearest_leaves = []
+        while len(queue) > 0 and len(k_nearest_leaves) < k:
+            front = queue[0]
+            parent = front.getparent()
+            n = len(front)
+            for i in range(n):
+                if front[i] not in visited:
+                    queue.append(front[i])
+                    visited.add(front[i])
+                    distances[front[i]] = distances[front] + 1
+            if parent is not None and parent not in visited:
+                queue.append(parent)
+                visited.add(parent)
+                distances[front[i]] = distances[front] + 1
+            if len(front) == 0:
+                k_nearest_leaves.append((front, distances[front]))
+            queue.pop(0)
+        return k_nearest_leaves
+    
+    def get_all_occurences_recursive(self, tree, subtree, lst_occurences):
+        if tostring(tree) == tostring(subtree):
+            lst_occurences.append(tree)
+        n = len(tree)
+        for i in range(n):
+            get_all_occurences_recursive(self, tree[i], subtree, lst_occurences)
+
+    def get_all_occurences(self, tree, subtree):
+        lst_occurences = []
+        get_all_occurences_recursive(self, tree, subtree, lst_occurences)
+        return lst_occurences
+    
+    def get_k_nearest_leaves_for_all_subtrees(self, lst_occurences, k):
+        features = []
+        for subtree in lst_occurences:
+            features.append((subtree, get_k_nearest_leaves(self, subtree, k)))
+        return features
+    
+    def compute_cost(self, features1, features2, method = 'cosine-similarity'):
+        if method == 'cosine-similarity':
+            features1 = [leaf for leaf, distance in features1]
+            features2 = [leaf for leaf, distance in features2]
+            combined_set = set(features1 + features2)
+            features1 = np.array([int(leaf in combined_set) for leaf in features1]).reshape(1, -1)
+            features2 = np.array([int(leaf in combined_set) for leaf in features2]).reshape(1, -1)
+            return cosine_similarity(features1, features2)
+
+    def get_cost_matrix(self, data1, data2):
+        cost_matrix = np.zeros((len(data1), len(data2)))
+        i = 0
+        j = 0
+        for subtree1, features1 in data1:
+            for subtree2, features2 in data2:
+                cost_matrix[i][j] = compute_cost(self, features1, features2)
+                j += 1
+            i += 1
+        return cost_matrix
+    
+    def get_min_cost_mapping(self, cost_matrix):
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        return col_ind
+    
+    def get_new_page_compressed_subtree(self, compressed_subtree, compresses_old_tree, compressed_new_tree):
+        lst_occurences_old = get_all_occurences(self, compresses_old_tree, subtree)
+        lst_occurences_new = get_all_occurences(self, compresses_old_tree, subtree)
+        features_old = get_k_nearest_leaves_for_all_subtrees(self, lst_occurences_old, k = 3)
+        features_new = get_k_nearest_leaves_for_all_subtrees(self, lst_occurences_new, k = 3)
+        cost_matrix = get_cost_matrix(self, data1 = features_old, data2 = features_new)
+        mapping = get_min_cost_mapping(self, cost_matrix)
+        idx = 0
+        for subtree, _ in features_old:
+            if subtree == compressed_subtree:
+                break
+            idx += 1
+        new_page_subtree = features_new[mapping[idx][0]]
+        return new_page_subtree
+    
+    def get_path_in_compressed_tree(self, subtree, old_tree, new_tree):
+        compressed_old_subtree = get_compressed_tree(self, subtree)
+        compresses_old_tree = get_compressed_tree(self, old_tree)
+        compressed_new_tree = get_compressed_tree(self, new_tree)
+        compressed_new_subtree = get_new_page_compressed_subtree(self, compressed_old_subtree, compresses_old_tree, compressed_new_tree)
+        path_of_compressed_new_subtree = get_subtree_path(self, subtree = compressed_new_tree, tree = compressed_new_tree)
+        return path_of_compressed_new_subtree
+    
+    def get_path_in_uncompressed_tree_helper(self, tree, path_compressed, idx_compressed, path_uncompressed, temp_path):
+        if idx_compressed == len(path_compressed):
+            path_uncompressed = temp_path[:]
+            return
+        n = len(tree)
+        for i in range(n):
+            if(n == 1):
+                temp_path.append(i)
+                get_path_in_uncompressed_tree_helper(self, tree[i], path_compressed, idx_compressed, path_uncompressed, temp_path)
+                temp_path.pop()
+            else:
+                if path_compressed[idx_compressed] == i:
+                    temp_path.append(i)
+                    get_path_in_uncompressed_tree_helper(self, tree[i], path_compressed, idx_compressed + 1, path_uncompressed, temp_path)
+                    temp_path.pop()
+
+    def get_path_in_uncompressed_tree(self, subtree, old_tree, new_tree):
+        path_of_compressed_new_subtree = get_path_in_compressed_tree(self, subtree, old_tree, new_tree)
+        path_in_new_tree = []
+        get_path_in_uncompressed_tree_helper(self, tree=new_tree,
+                                             path_compressed=path_of_compressed_new_subtree,
+                                             idx_compressed=0, path_uncompressed=path_in_new_tree,
+                                             temp_path=[])
+        return path_in_new_tree
+
 
 class OldPage(Page):
     tree = None
@@ -162,7 +300,7 @@ class OldPage(Page):
         self.tree_without_attr = self.get_tree_without_attr(code=self.code)
 
     def get_repaired_html(self, broken_html):
-        parser = HTMLParser()
+        parser = HTMLParser(remove_blank_text=True)
         tree = parse(StringIO(broken_html), parser)
         self.code = str(tostring(tree.getroot(),
                         pretty_print=False).decode('utf-8'))
@@ -170,7 +308,7 @@ class OldPage(Page):
         return self.code
 
     def get_tree_without_attr(self, code):
-        parser = HTMLParser(recover=True)
+        parser = HTMLParser(recover=True, remove_blank_text=True)
         code_without_attr = self.remove_tag_attributes(code=self.code)
         self.tree_without_attr = HTML(code_without_attr, parser=parser)
         return self.tree_without_attr
@@ -187,7 +325,7 @@ class Sub_Tree(Page):
         self.tree_without_attr = self.get_tree_without_attr(code=self.code)
 
     def get_repaired_xml(self, broken_xml):
-        parser = XMLParser(recover=True)
+        parser = XMLParser(recover=True, remove_blank_text=True)
         tree = parse(StringIO(broken_xml), parser)
         self.code = str(tostring(tree.getroot(),
                         pretty_print=False).decode('utf-8'))
@@ -195,7 +333,7 @@ class Sub_Tree(Page):
         return self.code
 
     def get_tree_without_attr(self, code):
-        parser = XMLParser(recover=True)
+        parser = XMLParser(recover=True, remove_blank_text=True)
         code_without_attr = self.remove_tag_attributes(code=self.code)
         self.tree_without_attr = XML(code_without_attr, parser=parser)
         return self.tree_without_attr
