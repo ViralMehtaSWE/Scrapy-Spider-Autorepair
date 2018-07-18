@@ -388,7 +388,7 @@ def equal(obj1, obj2):
         keys2 = list(obj2.keys())
         keys1.sort()
         keys2.sort()
-        if not equal(keys1, keys):
+        if not equal(keys1, keys2):
             return False
         for key1, key2 in zip(keys1, keys2):
             if not equal(obj1[key1], obj2[key2]):
