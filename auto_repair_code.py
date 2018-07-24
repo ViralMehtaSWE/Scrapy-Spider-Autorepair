@@ -14,6 +14,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from scipy.optimize import linear_sum_assignment
 from numpy import zeros
 from numpy import array
+from pickle import load
+from pickle import dump
 
 
 class State(Enum):
@@ -368,6 +370,52 @@ class Page:
         print(tostring(tree, pretty_print=True).decode('utf-8'))
 
 
+def equal(obj1, obj2):
+    if type(obj1) != type(obj2):
+        return False
+    primitive_types = [str, int, float, bool, None]
+    if type(obj1) in primitive_types:
+        return obj1 == obj2
+    if type(obj1) is list or type(obj1) is tuple:
+        if len(obj1) != len(obj2):
+            return False
+        for ch_obj1, ch_obj2 in zip(obj1, obj2):
+            if not equal(ch_obj1, ch_obj2):
+                return False
+        return True
+    elif type(obj1) is dict:
+        keys1 = list(obj1.keys())
+        keys2 = list(obj2.keys())
+        keys1.sort()
+        keys2.sort()
+        if not equal(keys1, keys2):
+            return False
+        for key1, key2 in zip(keys1, keys2):
+            if not equal(obj1[key1], obj2[key2]):
+                return False
+        return True
+    else:
+        attr1 = [getattr(obj1, str_attr1) for str_attr1 in dir(obj1) if not str_attr1.startswith('__')]
+        attr2 = [getattr(obj2, str_attr2) for str_attr2 in dir(obj2) if not str_attr2.startswith('__')]
+        return equal(attr1, attr2)
+
+
+def detect_spider_failure(file_curr_extracted_data, file_old_extracted_data):
+    try:
+        with open(file_curr_extracted_data, 'rb') as file:
+            curr_data = load(file)
+    except Exception as e:
+        print("Error occured while unpickling data", e)
+        curr_data = []
+    try:
+        with open(file_old_extracted_data, 'rb') as file:
+            old_data = load(file)
+    except Exception as e:
+        print("Error occured while unpickling data", e)
+        old_data = []
+    return equal(curr_data, old_data)
+
+
 def show_demo():
     for i in range(1, 4):
         print('#'*50)
@@ -431,7 +479,39 @@ def show_subtree_extraction_hungarian():
     print('#'*50)
 
 
+class Demo:
+    attr1 = 1
+    attr2 = 2
+
+
+def show_spider_failure_detection():
+    print('#'*50)
+    print('\nBEGINNING OF SPIDER FAILURE DETECTION\n')
+    path = 'C:/Users/Viral Mehta/Desktop/Scrapy-Spider-Autorepair/Examples/'
+    path1 = path + 'pickled_data1'
+    path2 = path + 'pickled_data2'
+    obj1 = Demo()
+    obj2 = Demo()
+    obj3 = Demo()
+    obj4 = Demo()
+    #Example 1
+    l1 = [obj1, obj2]
+    l2 = [obj3, obj4]
+    with open(path1, 'wb') as f:
+        dump(l1, f)
+    with open(path2, 'wb') as f:
+        dump(l2, f)
+    print("When the extracted data and old data are the same, failure detector output:", detect_spider_failure(path1, path2))
+    #Example 2
+    l1[0].attr1=5
+    with open(path1, 'wb') as f:
+        dump(l1, f)
+    print("When the extracted data and old data are different, failure detector output:", detect_spider_failure(path1, path2))
+    print('\nBEGINNING OF SPIDER FAILURE DETECTION\n')
+    print('#'*50)
+    
 show_demo()
 show_auto_repair()
 show_subtree_extraction_hungarian()
+show_spider_failure_detection()
 
