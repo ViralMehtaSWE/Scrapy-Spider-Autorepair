@@ -794,7 +794,7 @@ class Page(ParsingAndProcessing, HungarianHelperMethods):
                                         compressed_new_tree):
         """
             This function returns the path of the subtree
-            S in compressed form of new_tree(passed as an
+            S in compressed_new_tree(passed as an
             argument) such that S is the most probable match
             for compressed_subtree (passed as an argument).
             See example below.
@@ -805,46 +805,42 @@ class Page(ParsingAndProcessing, HungarianHelperMethods):
             Example:
                 >>> path = 'Examples/Hello_World.html'
                 >>> obj = Page(path, 'html')
-                >>> compressed_old_tree = fromstring('<html>\
-                    <body>\
-                        <div>\
-                            <p>Username</p>\
-                            <p>Password</p>\
-                            <div>Submit</div>\
-                        </div>\
-                        <div>\
-                        <div>\
-                                <div>\
-                                    <div>\
-                                        <p>Username</p>\
-                                        <p>Captcha1</p>\
-                                        <p>Captcha2</p>\
-                                    </div>\
-                                </div>\
-                            </div>\
-                        </div> \
-                        <p>This should not be extracted</p>\
-                    </body>\
-                </html>')
-                >>> compressed_new_tree = fromstring('<html>\
-                    <body>\
-                        <div>\
-                            <p>Username</p>\
-                            <p>email</p>\
-                        </div>\
-                        <p>This should not be extracted</p>\
-                        <div>\
-                            <p>Hello World</p>\
-                            <div>\
-                                <p>Username</p>\
-                                <p>Password</p>\
-                            </div>\
-                        </div>\
-                    </body>\
-                </html>')
-                >>> subtree = compressed_old_tree[0][0][0]
-                >>> tostring(subtree)
-                b'<p>Username</p>            '
+                >>> compressed_old_tree = fromstring('<body>\
+                                                        <div>\
+                                                            <p>Username</p>\
+                                                            <p>Password</p>\
+                                                            <div>Submit</div>\
+                                                        </div>\
+                                                        <div>\
+                                                            <div>\
+                                                                <div>\
+                                                                    <div>\
+                                                                        <p>Username</p>\
+                                                                        <p>Captcha1</p>\
+                                                                        <p>Captcha2</p>\
+                                                                    </div>\
+                                                                </div>\
+                                                            </div>\
+                                                        </div> \
+                                                        <p>This should not be extracted</p>\
+                                                    </body>')
+                >>> compressed_new_tree = fromstring('<body>\
+                                                        <div>\
+                                                            <p>Username</p>\
+                                                            <p>email</p>\
+                                                        </div>\
+                                                        <p>This should not be extracted</p>\
+                                                        <div>\
+                                                            <p>Hello World</p>\
+                                                            <div>\
+                                                                <p>Username</p>\
+                                                                <p>Password</p>\
+                                                            </div>\
+                                                        </div>\
+                                                    </body>')
+                >>> subtree = compressed_old_tree[0][0]
+                >>> tostring(subtree).strip()
+                b'<p>Username</p>'
                 >>> obj.get_new_page_compressed_subtree_path(subtree, compressed_old_tree, compressed_new_tree)
                 [2, 1, 0]
         """
@@ -932,23 +928,51 @@ class Page(ParsingAndProcessing, HungarianHelperMethods):
                                                                       compressed_new_tree)
         return path_of_compressed_new_subtree
     
+    def is_subsequence(self, list1, list2):
+        """
+            This function checks if list1 is a subsequence of list2.
+            Parameters:
+                1. list1(type = list)
+                2. list2(type = list)
+            Example:
+                >>> list1 = [1, 2, 3, 1, 2]
+                >>> list2 = [1, 0, 0, 2, 0, 3, 1, 0, 0, 0, 2, 0]
+                >>> is_subsequence(list1, list2)
+                True
+                >>> obj.is_subsequence([1], [])
+                False
+                >>> obj.is_subsequence([], [1])
+                True
+                >>> 
+        """
+        if len(list1) == 0:
+            return True
+        idx = 0
+        for val in list2:
+            if val == list1[idx]:
+                idx += 1
+            if idx == len(list1):
+                return True
+        return False
+
     def get_path_in_uncompressed_tree_helper(self,
                                              tree,
+                                             str_old_page_subtree,
                                              path_compressed,
-                                             idx_compressed,
                                              path_in_new_tree,
                                              temp_path):
         """
             path_compressed(passed as an argument) is
-            the path of a compressed subtree S in a compressed tree.
-            This function populates path_in_new_tree
+            the path of a compressed subtree S in a 
+            compressed tree whose uncompressed form
+            is the argument tree. This function populates path_in_new_tree
             (passed as an argument) with the path of the uncompressed
             form of subtree S in the uncompressed tree(passed as an argument).
             See example below.
             Parameters:
                 1. tree(type = lxml.etree._Element)
-                2. path_compressed(type = list)
-                3. idx_compressed(type = int)
+                2. str_old_page_subtree(type = string)
+                3. path_compressed(type = list)
                 4. path_in_new_tree(type = list)
                 5. temp_path(type = list)
             Example:
@@ -959,42 +983,30 @@ class Page(ParsingAndProcessing, HungarianHelperMethods):
                 >>> tostring(compressed_tree)
                 b'<div><div>child1</div><div>child2</div></div>'
                 >>> path_compressed = [0]
-                >>> idx_compressed = 0
                 >>> path_in_new_tree = []
                 >>> temp = []
-                >>> obj.get_path_in_uncompressed_tree_helper(tree, path_compressed, idx_compressed, path_in_new_tree, temp)
+                >>> str_old_page_subtree = tostring(compressed_tree[0]).strip()
+                >>> str_old_page_subtree
+                b'<div>child1</div>'
+                >>> obj.get_path_in_uncompressed_tree_helper(tree, str_old_page_subtree, path_compressed, path_in_new_tree, temp)
                 >>> path_in_new_tree
-                [[0]]
+                [[0, 0, 0]]
                 >>> 
         """
-        if idx_compressed == len(path_compressed):
-            path_in_new_tree.append(deepcopy(temp_path))
+        if(self.is_subsequence(path_compressed, temp_path) and tostring(tree).strip() == str_old_page_subtree):
+            path_in_new_tree.append(temp_path[:])
             return
         n = len(tree)
         for i in range(n):
-            if(n == 1):
-                temp_path.append(i)
-                self.get_path_in_uncompressed_tree_helper(tree[i],
-                                                          path_compressed,
-                                                          idx_compressed,
-                                                          path_in_new_tree,
-                                                          temp_path)
-                temp_path.pop()
-            else:
-                if path_compressed[idx_compressed] == i:
-                    temp_path.append(i)
-                    self.get_path_in_uncompressed_tree_helper(tree[i],
-                                                              path_compressed,
-                                                              idx_compressed + 1,
-                                                              path_in_new_tree,
-                                                              temp_path)
-                    temp_path.pop()
+            temp_path.append(i)
+            self.get_path_in_uncompressed_tree_helper(tree[i], str_old_page_subtree, path_compressed, path_in_new_tree, temp_path)
+            temp_path.pop()
 
     def get_path_in_uncompressed_tree(self, subtree, old_tree, new_tree):
         """
             This function returns the path of the subtree
-            (different from subtree argument) S new_tree
-            (passed as an argument) such that S is the mos
+            (different from subtree argument) S in new_tree
+            (passed as an argument) such that S is the most
             probable match for the subtree(passed as an
             argument). See example below.
             Parameters:
@@ -1044,16 +1056,17 @@ class Page(ParsingAndProcessing, HungarianHelperMethods):
                 >>> subtree = old_page[0][0][0]
                 >>> tostring(subtree)
                 b'<p>Username</p>            '
-                >>> obj.get_path_in_compressed_tree(subtree, old_page, new_page)
+                >>> obj.get_path_in_uncompressed_tree(subtree, old_page, new_page)
                 [2, 1, 0]
         """
         path_of_compressed_new_subtree = self.get_path_in_compressed_tree(subtree,
                                                                           old_tree,
                                                                           new_tree)
+        str_old_page_subtree = tostring(subtree).strip()
         path_in_new_tree = []
         self.get_path_in_uncompressed_tree_helper(new_tree,
+                                                  str_old_page_subtree,
                                                   path_of_compressed_new_subtree,
-                                                  0,
                                                   path_in_new_tree,
                                                   [])
         return path_in_new_tree[0]
@@ -1238,9 +1251,7 @@ def show_spider_failure_detection():
     print('\nBEGINNING OF SPIDER FAILURE DETECTION\n')
     print('#'*50)
     
-show_demo()
-show_auto_repair()
-show_subtree_extraction_hungarian()
-show_spider_failure_detection()
-#path1 = 'Examples/Old_Page_Hungarian.html'
-#obj = Page(path1, 'html')
+#show_demo()
+#show_auto_repair()
+#show_subtree_extraction_hungarian()
+#show_spider_failure_detection()
