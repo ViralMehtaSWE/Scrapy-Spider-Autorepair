@@ -246,8 +246,7 @@ def test_get_min_cost_mapping():
 def test_get_new_page_compressed_subtree_path():
     path = 'Examples/Hello_World.html'
     obj = Page(path, 'html')
-    compressed_old_tree = fromstring('<html>\
-                                        <body>\
+    compressed_old_tree = fromstring('  <body>\
                                             <div>\
                                                 <p>Username</p>\
                                                 <p>Password</p>\
@@ -265,10 +264,8 @@ def test_get_new_page_compressed_subtree_path():
                                                 </div>\
                                             </div> \
                                             <p>This should not be extracted</p>\
-                                        </body>\
-                                    </html>')
-    compressed_new_tree = fromstring('<html>\
-                                        <body>\
+                                        </body>')
+    compressed_new_tree = fromstring('  <body>\
                                             <div>\
                                                 <p>Username</p>\
                                                 <p>email</p>\
@@ -281,11 +278,10 @@ def test_get_new_page_compressed_subtree_path():
                                                     <p>Password</p>\
                                                 </div>\
                                             </div>\
-                                        </body>\
-                                    </html>')
-    subtree = compressed_old_tree[0][0][0]
+                                        </body>')
+    subtree = compressed_old_tree[0][0]
     assert(tostring(subtree).strip() == b'<p>Username</p>')
-    assert(obj.get_new_page_compressed_subtree_path(subtree, compressed_old_tree, compressed_new_tree) == [0, 2, 1, 0]) ##TODO
+    assert(obj.get_new_page_compressed_subtree_path(subtree, compressed_old_tree, compressed_new_tree) == [2, 1, 0])
 
 def test_get_path_in_compressed_tree():
     path = 'Examples/Hello_World.html'
@@ -338,11 +334,11 @@ def test_get_path_in_uncompressed_tree_helper():
     compressed_tree, dic = obj.get_compressed_tree(tree)
     assert(tostring(compressed_tree) == b'<div><div>child1</div><div>child2</div></div>')
     path_compressed = [0]
-    idx_compressed = 0
+    str_old_page_subtree = tostring(compressed_tree[0]).strip()
     path_in_new_tree = []
-    temp = []
-    obj.get_path_in_uncompressed_tree_helper(tree, path_compressed, idx_compressed, path_in_new_tree, temp)
-    assert(path_in_new_tree == [[0]])
+    temp_path = []
+    obj.get_path_in_uncompressed_tree_helper(tree, str_old_page_subtree, path_compressed, path_in_new_tree, temp_path)
+    assert(path_in_new_tree == [[0, 0, 0]])
 
 def test_get_path_in_uncompressed_tree():
     path = 'Examples/Hello_World.html'
@@ -386,7 +382,7 @@ def test_get_path_in_uncompressed_tree():
                         </html>')
     subtree = old_page[0][0][0]
     assert(tostring(subtree).strip() == b'<p>Username</p>')
-    assert(obj.get_path_in_compressed_tree(subtree, old_page, new_page) == [2, 1, 0]) #TODO
+    assert(obj.get_path_in_uncompressed_tree(subtree, old_page, new_page) == [0, 2, 1, 0])
 
 def test_equal():
     dic1 = {1:'1', 2: {'1': 5}}

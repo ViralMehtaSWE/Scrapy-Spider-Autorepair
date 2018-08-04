@@ -228,15 +228,5 @@ def show_demo():
     extracted_old_subtree = old_page.tree.getroot()[0][1][0][0]
     old_page.print_tree(extracted_old_subtree)
     print(auto_repair(old_page, new_page, extracted_old_subtree, xpaths = None))
-    return old_page, auto_repair(old_page_path, new_page_path, extracted_old_subtree, xpaths = None)
-
-#obj, (xpaths, subtree) = show_demo()
-#path = 'Examples/Hello_World.html'
-#obj = Page(path, 'html')
-old_page_path = 'Examples/Autorepair_Old_Page.html'
-new_page_path = 'Examples/Autorepair_New_Page.html'
-old_page = Page(old_page_path, 'html')
-new_page = Page(new_page_path, 'html')
-extracted_old_subtree = old_page.tree.getroot()[0][1][0][0]
-xpaths, repaired_subtree = auto_repair(old_page, new_page, extracted_old_subtree, xpaths = None)
+    return old_page, auto_repair(old_page, new_page, extracted_old_subtree, xpaths = None)
 
