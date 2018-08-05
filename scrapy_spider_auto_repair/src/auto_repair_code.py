@@ -5,6 +5,7 @@ from lxml.etree import XML
 from lxml.etree import tostring
 from lxml.etree import parse
 from lxml.etree import fromstring
+from lxml.etree import ElementTree
 from copy import deepcopy
 from io import StringIO
 from string import whitespace
@@ -345,7 +346,7 @@ class HungarianHelperMethods:
 class Page(ParsingAndProcessing, HungarianHelperMethods):
     path_to_subtree = None
     curr_path = None
-    xpath_gen_path = None
+    rule_gen_path = None
     
     def __init__(self, path_to_data, parser):
         ParsingAndProcessing.__init__(self, path_to_data, parser)
@@ -470,9 +471,9 @@ class Page(ParsingAndProcessing, HungarianHelperMethods):
         self.curr_path = []
         return (self.path_to_subtree, mn[0])
 
-    def xpath_dfs(self, root, tree, xpaths):
+    def rule_dfs(self, root, tree, rules):
         """
-            This function populates xpaths(passed as an argument)
+            This function populates rules(passed as an argument)
             with tuples of the form (list_path1, list_path2) where
             list_path1 is a path in root(passed as an argument)
             and list_path2 is a path in tree(passed as an argument)
@@ -482,30 +483,30 @@ class Page(ParsingAndProcessing, HungarianHelperMethods):
             Parameters:
                 1. root(type = lxml.etree._Element)
                 2. tree(type = lxml.etree._Element)
-                3. xpaths(type = list/list like)
+                3. rules(type = list/list like)
             Example:
                 >>> path = 'Examples/Hello_World.html'
                 >>> obj = Page(path, 'html')
                 >>> tree = fromstring('<div><div>child1</div><div>child2</div></div>')
                 >>> root = fromstring('<div><div>child3</div><div>child1</div></div>')
-                >>> xpaths = []
-                >>> obj.xpath_gen_path = []
-                >>> obj.xpath_dfs(root, tree, xpaths)
-                >>> print(xpaths)
+                >>> rules = []
+                >>> obj.rule_gen_path = []
+                >>> obj.rule_dfs(root, tree, rules)
+                >>> print(rules)
                 [([1], [0])]
                 >>> 
         """
         path_to_subtree, mn = self.get_subtree_path(root, tree)
         if mn == 0:
-            xpaths.append((self.xpath_gen_path[:], path_to_subtree[:]))
+            rules.append((self.rule_gen_path[:], path_to_subtree[:]))
             return
         n = len(root)
         for i in range(n):
-            self.xpath_gen_path.append(i)
-            self.xpath_dfs(root[i], tree, xpaths)
-            self.xpath_gen_path.pop()
+            self.rule_gen_path.append(i)
+            self.rule_dfs(root[i], tree, rules)
+            self.rule_gen_path.pop()
 
-    def generate_XPaths(self, subtree, tree):
+    def generate_rules(self, subtree, tree):
         """
             This function returns a list of tuples of the form
             (list_path1, list_path2) where list_path1 is a path in
@@ -521,25 +522,25 @@ class Page(ParsingAndProcessing, HungarianHelperMethods):
                 >>> obj = Page(path, 'html')
                 >>> tree = fromstring('<div><div>child1</div><div>child2</div></div>')
                 >>> subtree = fromstring('<div><div>child3</div><div>child1</div></div>')
-                >>> obj.generate_XPaths(subtree, tree)
+                >>> obj.generate_rules(subtree, tree)
                 [([1], [0])]
                 >>> 
         """
-        xpaths = []
-        self.xpath_gen_path = []
-        self.xpath_dfs(subtree, tree, xpaths)
-        return xpaths
+        rules = []
+        self.rule_gen_path = []
+        self.rule_dfs(subtree, tree, rules)
+        return rules
 
-    def get_repaired_subtree(self, xpaths, query_tree, tree):
+    def get_repaired_subtree(self, rules, query_tree, tree):
         """
-            This function uses xpaths(passed as an argument) to
+            This function uses rules(passed as an argument) to
             repair query_tree(passed as an argument) and returns
             the repaired query_tree. To do this, for each tuple t
-            in xpaths, it calls appropriate function to replace the
+            in rules, it calls appropriate function to replace the
             subtree present at path t[0] in query_treewith the subtree
             present at path t[1] in tree(passed as an argument).
             Parameters:
-                1. xpaths(type = list of tuples)
+                1. rules(type = list of tuples)
                 2. query_tree(type = lxml.etree._ElementTree)
                 3. tree(type = lxml.etree._ElementTree)
             Example:
@@ -547,15 +548,15 @@ class Page(ParsingAndProcessing, HungarianHelperMethods):
                 >>> obj = Page(path, 'html')
                 >>> tree = fromstring('<div><div>child1</div><div>child2</div></div>').getroottree()
                 >>> query_tree = fromstring('<div><div>child3</div><div>child4</div></div>').getroottree()
-                >>> xpaths = [([0], [1]), ([1], [0])]
-                >>> repaired_subtree = obj.get_repaired_subtree(xpaths, query_tree, tree)
+                >>> rules = [([0], [1]), ([1], [0])]
+                >>> repaired_subtree = obj.get_repaired_subtree(rules, query_tree, tree)
                 >>> tostring(repaired_subtree)
                 b'<div><div>child2</div><div>child1</div></div>'
                 >>> 
         """
-        for xpath in xpaths:
-            retrieved_subtree = self.retrieve_subtree(tree, xpath[1])
-            query_tree = self.assign(query_tree, retrieved_subtree, xpath[0])
+        for rule in rules:
+            retrieved_subtree = self.retrieve_subtree(tree, rule[1])
+            query_tree = self.assign(query_tree, retrieved_subtree, rule[0])
         return query_tree
 
     def compress_tree(self, tree, parent, idx_of_child, orig_tree, dic):
@@ -1157,6 +1158,158 @@ def detect_spider_failure(file_curr_extracted_data, file_old_extracted_data):
     return equal(curr_data, old_data)
 
 
+def get_prefix_path(extracted_old_subtree):
+    """
+        This function returns the path of extracted_old_subtree
+        (passed as an argument) in the tree containing this subtree.
+        See example below.
+        Parameters:
+            1. extracted_old_subtree(type = lxml.etree._Element)
+        Example:
+            >>> tree = fromstring('<div><div>child1</div><div><div>child2</div><div>child3</div></div></div>')
+            >>> extracted_old_subtree = tree[1][1]
+            >>> tostring(extracted_old_subtree)
+            b'<div>child3</div>'
+            >>> get_prefix_path(extracted_old_subtree)
+            [1, 1]
+            >>> extracted_old_subtree = tree[1][0]
+            >>> tostring(extracted_old_subtree)
+            b'<div>child2</div>'
+            >>> get_prefix_path(extracted_old_subtree)
+            [1, 0]
+            >>> 
+    """
+    ptr = extracted_old_subtree
+    prefix_path = []
+    while(ptr.getparent() is not None):
+        parent = ptr.getparent()
+        n = len(parent)
+        for i in range(n):
+            if parent[i] == ptr:
+                prefix_path.append(i)
+                break
+        ptr = parent
+    prefix_path.reverse()
+    return prefix_path
+
+
+def get_paths(rules, prefix_path):
+    """
+        This function appends prefix_path(passed as an argument)
+        to each path where path is the first element of each tuple
+        in the list called rules(passed as an argument). The path
+        (described above) is a relative path, i.e., it is a path in
+        a subtree and prefix_path(passed as an argument) is the path
+        of the subtree in its tree, so, by appending path to prefix_path,
+        we get the absolute path. See example below.
+        Parameters:
+            1. rules(type = list of tuples)
+            2. prefix_path(type = list)
+        Example:
+            >>> rules = [([1, 0], [0, 0]), ([0], [1]), ([1, 1, 1], [1, 0]), ([], [0])]
+            >>> prefix_path = [1, 0]
+            >>> get_paths(rules, prefix_path)
+            [[1, 0, 1, 0], [1, 0, 0], [1, 0, 1, 1, 1], [1, 0]]
+            >>> 
+    """
+    paths = []
+    for rule in rules:
+        path, _ = rule
+        path = prefix_path + path
+        paths.append(path)
+    return paths
+
+
+def get_subtrees_to_be_extracted(rules, extracted_old_subtree, old_page):
+    """
+        This function returns a list containing subtrees
+        which are retrieved from old_page,
+        present at paths in old_page.tree
+        specified by the absolute path derived from
+        rules, extracted_old_subtree and old_page
+        (passed as arguments). See example below.
+        Parameters:
+            1. rules(type = list of tuples)
+            2. extracted_old_subtree(type = lxml.etree._Element)
+            3. old_page(type = Page Object)
+        Example:
+            >>> rules = [([0, 0], [0, 0, 0]), ([0, 1], [0, 0, 1])]
+            >>> extracted_old_subtree = old_page.tree.getroot()[0][1][0][0]
+            >>> subtrees_to_be_extracted = get_subtrees_to_be_extracted(rules, extracted_old_subtree, old_page)
+            >>> len(subtrees_to_be_extracted)
+            2
+            >>> tostring(subtrees_to_be_extracted[0])
+            b'<p>Username</p>\n                        '
+            >>> tostring(subtrees_to_be_extracted[1])
+            b'<p>email</p>\n                        '
+            >>> 
+    """
+    prefix_path = get_prefix_path(extracted_old_subtree)
+    paths = get_paths(rules, prefix_path)
+    subtrees_to_be_extracted = []
+    for path in paths:
+        subtrees_to_be_extracted.append(old_page.retrieve_subtree(old_page.tree,
+                                                                  path, cpy = False))
+    return subtrees_to_be_extracted
+
+
+def auto_repair(old_page, new_page, extracted_old_subtree, rules = None):
+    """
+        This function is used to repair the incorrect
+        data extracted by the broken spider from the new
+        page. extracted_old_subtree(passed as an argument)
+        is the correct data extracted by the unbroken
+        spider from the old page. This data must be a
+        subtree in the HTML code of the old page. This
+        function repairs the spider to return the rules,
+        called rules, and it also returns the correct
+        data, called repaired_subtree. If rules or the
+        rules are passed to this function, then, it uses
+        the rules to find the correct data to be
+        extracted from old_page, otherwise, it first
+        generates the rules and then, corrects the spider
+        and outputs rules(called rules, so that they can be
+        used directly on pages having similar layout) as well
+        as the repaired_subtree. See example below.
+        Parameters:
+            1. old_page(type = Page Object)
+            2. new_page(type = Page Object)
+            3. extracted_old_subtree(type = lxml.etree._Element)
+        Example:
+            >>> old_page_path = 'Examples/Autorepair_Old_Page.html'
+            >>> new_page_path = 'Examples/Autorepair_New_Page.html'
+            >>> old_page = Page(old_page_path, 'html')
+            >>> new_page = Page(new_page_path, 'html')
+            >>> extracted_old_subtree = old_page.tree.getroot()[0][1][0][0]
+            >>> tostring(extracted_old_subtree)
+            b'<div>\n                    <div>\n                        <p>Username</p>\n                        <p>email</p>\n                        <p>Captcha1</p>\n                        <p>Captcha2</p>\n                    </div>\n                </div>\n            '
+            >>> rules, repaired_subtree = auto_repair(old_page, new_page, extracted_old_subtree, rules = None)
+            >>> rules
+            [([0, 0], [0, 0, 0]), ([0, 1], [0, 0, 1])]
+            >>> tostring(repaired_subtree)
+            b'<div>\n                    <div>\n                        <p>Username</p>\n            <p>email</p>\n        <p>Captcha1</p>\n                        <p>Captcha2</p>\n                    </div>\n                </div>\n            '
+            >>> 
+    """
+    if rules is not None:
+        repaired_subtree = new_page.get_repaired_subtree(rules,
+                                                         ElementTree(extracted_old_subtree),
+                                                         new_page.tree)
+        return rules, repaired_subtree
+    rules = new_page.generate_rules(extracted_old_subtree,
+                                       new_page.tree_without_attr)
+    subtrees_to_be_extracted = get_subtrees_to_be_extracted(rules,
+                                                            extracted_old_subtree,
+                                                            old_page)
+    root_old_page = old_page.tree.getroot()
+    root_new_page = new_page.tree.getroot()
+    final_rules = []
+    for subtree, rule in zip(subtrees_to_be_extracted, rules):
+        final_rules.append((rule[0], old_page.get_path_in_uncompressed_tree(subtree, 
+                                                                   root_old_page,
+                                                                   root_new_page)))
+    return auto_repair(old_page, new_page, extracted_old_subtree, rules = final_rules)
+
+
 def show_demo():
     for i in range(1, 4):
         print('#'*50)
@@ -1176,11 +1329,11 @@ def show_demo():
         print("subtree found is:")
         print(tostring(subtree_retrieved, pretty_print=False).decode('utf-8'))
         print("-"*20)
-        print('Testing XPath Generation for example ' + str(i) + ' ...')
-        xpaths = tree_old_page.generate_XPaths(query_tree_obj.
+        print('Testing rule Generation for example ' + str(i) + ' ...')
+        rules = tree_old_page.generate_rules(query_tree_obj.
                                                tree_without_attr,
                                                tree_old_page.tree_without_attr)
-        print('xpaths =', xpaths)
+        print('rules =', rules)
         print("\nEND OF EXAMPLE " + str(i) + "\n")
         print('#'*50)
 
@@ -1191,12 +1344,12 @@ def show_auto_repair():
     tree_obj1 = Page("Examples/New Layout Page1.html", 'html')
     tree_obj2 = Page("Examples/New Layout Page2.html", 'html')
     query_tree_obj = Page("Examples/Extracted Subtree from Old Layout.html", 'xml')
-    xpaths = tree_obj1.generate_XPaths(query_tree_obj.tree_without_attr,
+    rules = tree_obj1.generate_rules(query_tree_obj.tree_without_attr,
                                        tree_obj1.tree_without_attr)
-    repaired_query_tree = tree_obj2.get_repaired_subtree(xpaths,
+    repaired_query_tree = tree_obj2.get_repaired_subtree(rules,
                                                          query_tree_obj.tree,
                                                          tree_obj2.tree)
-    print("xpaths =", xpaths)
+    print("rules =", rules)
     print("repaired_query_tree =", tostring(repaired_query_tree,
           pretty_print=True).decode('utf-8'))
     print("\nEND OF AUTO-REPAIR EXAMPLE\n")
@@ -1248,10 +1401,26 @@ def show_spider_failure_detection():
     with open(path1, 'wb') as f:
         dump(l1, f)
     print("When the extracted data and old data are different, failure detector output:", detect_spider_failure(path1, path2))
-    print('\nBEGINNING OF SPIDER FAILURE DETECTION\n')
+    print('\nEND OF SPIDER FAILURE DETECTION\n')
     print('#'*50)
-    
+
+
+def show_demo_auto_repair_final():
+    print('#'*50)
+    print('\nBEGINNING OF DEMO AUTO-REPAIR FINAL\n')
+    old_page_path = 'C:/Users/Viral Mehta/Desktop/Scrapy-Spider-Autorepair/Examples/Autorepair_Old_Page.html'
+    new_page_path = 'C:/Users/Viral Mehta/Desktop/Scrapy-Spider-Autorepair/Examples/Autorepair_New_Page.html'
+    new_page = Page(new_page_path, 'html')
+    old_page = Page(old_page_path, 'html')
+    extracted_old_subtree = old_page.tree.getroot()[0][1][0][0]
+    old_page.print_tree(extracted_old_subtree)
+    print(auto_repair(old_page, new_page, extracted_old_subtree, rules = None))
+    print('\nEND OF DEMO AUTO-REPAIR FINAL\n')
+    print('#'*50)
+
+
 #show_demo()
 #show_auto_repair()
 #show_subtree_extraction_hungarian()
 #show_spider_failure_detection()
+#show_demo_auto_repair_final()
