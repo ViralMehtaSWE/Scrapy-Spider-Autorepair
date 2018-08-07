@@ -12,12 +12,12 @@ Go the the command line and type -
 #
 # How It Works?
 
-All you need to do is import one function, auto\_repair\_lst.
+All you need to do is import one function, ```auto_repair_lst```.
 
-To do this, you can type,
+To do this, you can type, 
 
 ```python
->>> from spider\_auto\_repair.auto\_repair\_api import auto\_repair\_lst
+>>> from spider_auto_repair.auto_repair_api import auto_repair_lst
 ```
 
  This function, auto\_repair\_lst takes 4 parameters:
@@ -184,5 +184,9 @@ and the data present in the new page is in the form:
 If you are interested in finding out more about the algorithm behind this, feel free to visit my blog:
 
 [https://blogs.python-gsoc.org/viral-mehta/](https://blogs.python-gsoc.org/viral-mehta/)
+
+Here is the link to my code on PyPI:
+
+[https://pypi.org/project/scrapy-spider-auto-repair/](https://pypi.org/project/scrapy-spider-auto-repair/)
 
 I am openly looking for contributors. Pull requests are welcome :)
