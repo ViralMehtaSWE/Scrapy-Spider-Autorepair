@@ -713,7 +713,7 @@ class Page(ParsingAndProcessing, HungarianHelperMethods):
                 []
                 >>> 
         """
-        if tostring(tree).strip() == tostring(subtree).strip():
+        if tostring(tree).strip() == tostring(subtree).strip(): #TODO
             lst_occurences.append((tree, path[:]))
             return
         n = len(tree)
@@ -994,7 +994,7 @@ class Page(ParsingAndProcessing, HungarianHelperMethods):
                 [[0, 0, 0]]
                 >>> 
         """
-        if(self.is_subsequence(path_compressed, temp_path) and tostring(tree).strip() == str_old_page_subtree):
+        if(self.is_subsequence(path_compressed, temp_path) and tostring(tree).strip() == str_old_page_subtree): #TODO
             path_in_new_tree.append(temp_path[:])
             return
         n = len(tree)

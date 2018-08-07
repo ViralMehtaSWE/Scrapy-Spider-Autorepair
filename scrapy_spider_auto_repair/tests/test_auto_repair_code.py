@@ -1,10 +1,10 @@
-from ..src.auto_repair_code import Page
-from ..src.auto_repair_code import equal
-from ..src.auto_repair_code import get_prefix_path
-from ..src.auto_repair_code import get_paths
-from ..src.auto_repair_code import get_subtrees_to_be_extracted
-from ..src.auto_repair_code import auto_repair
-from ..src.auto_repair_api import auto_repair_lst
+from ..spider_auto_repair.auto_repair_code import Page
+from ..spider_auto_repair.auto_repair_code import equal
+from ..spider_auto_repair.auto_repair_code import get_prefix_path
+from ..spider_auto_repair.auto_repair_code import get_paths
+from ..spider_auto_repair.auto_repair_code import get_subtrees_to_be_extracted
+from ..spider_auto_repair.auto_repair_code import auto_repair
+from ..spider_auto_repair.auto_repair_api import auto_repair_lst
 from lxml.etree import tostring
 from lxml.etree import fromstring
 from math import inf
@@ -12,62 +12,62 @@ from numpy import array
 
 
 def test_get_repaired_xml():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     broken_xml = '<div id = "ID"> Hello World <div>'
     assert(obj.get_repaired_xml(broken_xml) == '<div id="ID"> Hello World <div/></div>')
 
 def test_get_tree_without_attr_xml():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     code = '<div id = "ID"> Hello World <div>'
     tree = obj.get_tree_without_attr_xml(code)
     assert(tostring(tree) == b'<div> Hello World <div/></div>')
 
 def test_get_repaired_html():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     broken_html = '<div id = "ID"> Hello World <div>'
     assert(obj.get_repaired_html(broken_html) ==
     '<html><body><div id="ID"> Hello World <div/></div></body></html>')
 
 def test_get_tree_without_attr_html():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     code = '<div id = "ID"> Hello World <div>'
     tree = obj.get_tree_without_attr_html(code)
     assert(tostring(tree) == b'<html><body><div> Hello World <div/></div></body></html>')
 
 def test_get_data():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
-    path = "../src/Examples/1.html"
+    path = "../spider_auto_repair/Examples/1.html"
     broken_code = obj.get_data(path)
     assert(broken_code == 
     '<html>\n    <body>\n        <p>Browsers usually insert quotation marks around the q element.</p>\n        <q>Build a future where people live in harmony with nature.</q>\n    </body>\n</html>\n'
     )
 
 def test_remove_br():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     s = '<br/><br />...<br     /></ br><br>....'
     assert(obj.remove_br(s) == '.......')
 
 def test_remove_tag_attributes():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     code = '<div id = "ID"> Hello World </div>'
     assert(obj.remove_tag_attributes(code) == '<div> Hello World </div>')
 
 def test_get_edit_distance():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     s1 = 'abcdef'
     s2 = 'cefg'
     assert(obj.get_edit_distance(s1, s2) == 4)
 
 def test_retrieve_subtree():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     tree = fromstring('<div><div>child1</div><div><div>child2</div><div>child3</div></div></div>').getroottree()
     path = [1, 1]
@@ -75,7 +75,7 @@ def test_retrieve_subtree():
     assert(tostring(subtree) == b'<div>child3</div>')
 
 def test_assign():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     xml_data_tree = '<div><div>child1</div><div>child2</div></div>'
     xml_data_subtree = '<div>subtree</div>'
@@ -85,7 +85,7 @@ def test_assign():
     assert(tostring(obj.assign(tree, root_subtree, path)) == b'<div><div>subtree</div><div>child2</div></div>')
 
 def test_dfs():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     str_subtree = ['<div>child2</div>']
     mn = [inf]
@@ -97,14 +97,14 @@ def test_dfs():
     assert(obj.path_to_subtree == [1])
 
 def test_get_subtree_path():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     root_subtree = fromstring('<div>child2</div>')
     root_tree = fromstring('<div><div>child1</div><div>child2</div></div>')
     assert(obj.get_subtree_path(root_subtree, root_tree) == ([1], 0))
 
 def test_rule_dfs():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     tree = fromstring('<div><div>child1</div><div>child2</div></div>')
     root = fromstring('<div><div>child3</div><div>child1</div></div>')
@@ -114,14 +114,14 @@ def test_rule_dfs():
     assert(rules == [([1], [0])])
 
 def test_generate_rules():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     tree = fromstring('<div><div>child1</div><div>child2</div></div>')
     subtree = fromstring('<div><div>child3</div><div>child1</div></div>')
     assert(obj.generate_rules(subtree, tree) == [([1], [0])])
 
 def test_get_repaired_subtree():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     tree = fromstring('<div><div>child1</div><div>child2</div></div>').getroottree()
     query_tree = fromstring('<div><div>child3</div><div>child4</div></div>').getroottree()
@@ -130,7 +130,7 @@ def test_get_repaired_subtree():
     assert(tostring(repaired_subtree) == b'<div><div>child2</div><div>child1</div></div>')
 
 def test_compress_tree():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     tree = fromstring('<div><div><div><div>child1</div></div></div>\
                                         <div>child2</div></div>')
@@ -143,14 +143,14 @@ def test_compress_tree():
     assert(tostring(compressed_tree) == b'<div><div>child1</div><div>child2</div></div>')
 
 def test_get_compressed_tree():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     tree = fromstring('<div><div><div><div>child1</div></div></div><div>child2</div></div>')
     compressed_tree, dic = obj.get_compressed_tree(tree)
     assert(tostring(compressed_tree) == b'<div><div>child1</div><div>child2</div></div>')
 
 def test_get_k_nearest_leaves():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     ## Example 1:
     tree = fromstring('<div><div>child1</div><div><div>child2</div><div>child3</div></div></div>')
@@ -167,7 +167,7 @@ def test_get_k_nearest_leaves():
     assert(tostring(k_nearest_leaves[1][0]) == b'<div>child1</div>')
 
 def test_get_all_occurences_helper():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     tree = fromstring('<div><div>child1</div><div><div>child2</div><div>child3</div></div></div>')
     subtree = fromstring('<div>child2</div>')
@@ -180,7 +180,7 @@ def test_get_all_occurences_helper():
     assert(path == [])
 
 def test_get_all_occurences():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     tree = fromstring('<div><div>child1</div><div><div>child2</div><div>child3</div></div></div>')
     subtree = fromstring('<div>child2</div>')
@@ -190,7 +190,7 @@ def test_get_all_occurences():
     assert(len(lst_occurences) == 1)
 
 def test_get_k_nearest_leaves_for_all_subtrees():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     tree = fromstring('<div><div>child1</div><div><div>child2</div><div>child3</div></div></div>')
     lst_occurences = [tree[0]]
@@ -203,7 +203,7 @@ def test_get_k_nearest_leaves_for_all_subtrees():
     assert(features[0][1][1][1] == 3)
 
 def test_compute_cost():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     tree = fromstring('<div><div>child1</div><div><div>child2</div><div>child3</div></div></div>')
     subtree1 = tree[1][0]
@@ -214,7 +214,7 @@ def test_compute_cost():
     assert((cost[0][0] - -0.5) <= 10**(-9))
 
 def test_get_cost_matrix():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     tree = fromstring('<div><div>child1</div><div><div>child2</div><div>child3</div></div></div>')
     subtree1 = tree[1][0]
@@ -227,14 +227,14 @@ def test_get_cost_matrix():
     assert(abs(cost_matrix[0][0] - -1) <= 10**(-9))
 
 def test_get_min_cost_mapping():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     cost_matrix = array([[0.1, 0.2, 0.7],[0.4, 0.6, 0.1]])
     assert(obj.get_min_cost_mapping(cost_matrix)[0] == 0)
     assert(obj.get_min_cost_mapping(cost_matrix)[1] == 2)
 
 def test_get_new_page_compressed_subtree_path():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     compressed_old_tree = fromstring('  <body>\
                                             <div>\
@@ -274,7 +274,7 @@ def test_get_new_page_compressed_subtree_path():
     assert(obj.get_new_page_compressed_subtree_path(subtree, compressed_old_tree, compressed_new_tree) == [2, 1, 0])
 
 def test_get_path_in_compressed_tree():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     old_page = fromstring('<html>\
                             <body>\
@@ -318,7 +318,7 @@ def test_get_path_in_compressed_tree():
     assert(obj.get_path_in_compressed_tree(subtree, old_page, new_page) == [2, 1, 0])
 
 def test_get_path_in_uncompressed_tree_helper():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     tree = fromstring('<div><div><div><div>child1</div></div></div><div>child2</div></div>')
     compressed_tree, dic = obj.get_compressed_tree(tree)
@@ -331,7 +331,7 @@ def test_get_path_in_uncompressed_tree_helper():
     assert(path_in_new_tree == [[0, 0, 0]])
 
 def test_get_path_in_uncompressed_tree():
-    path = '../src/Examples/Hello_World.html'
+    path = '../spider_auto_repair/Examples/Hello_World.html'
     obj = Page(path, 'html')
     old_page = fromstring('<html>\
                             <body>\
@@ -394,7 +394,7 @@ def test_get_paths():
     assert(get_paths(rules, prefix_path) == [[1, 0, 1, 0], [1, 0, 0], [1, 0, 1, 1, 1], [1, 0]])
 
 def test_get_subtrees_to_be_extracted():
-    old_page_path = '../src/Examples/Autorepair_Old_Page.html'
+    old_page_path = '../spider_auto_repair/Examples/Autorepair_Old_Page.html'
     old_page = Page(old_page_path, 'html')
     rules = [([0, 0], [0, 0, 0]), ([0, 1], [0, 0, 1])]
     extracted_old_subtree = old_page.tree.getroot()[0][1][0][0]
@@ -404,8 +404,8 @@ def test_get_subtrees_to_be_extracted():
     assert(tostring(subtrees_to_be_extracted[1]).strip() == b'<p>email</p>')
 
 def test_auto_repair():
-    old_page_path = '../src/Examples/Autorepair_Old_Page.html'
-    new_page_path = '../src/Examples/Autorepair_New_Page.html'
+    old_page_path = '../spider_auto_repair/Examples/Autorepair_Old_Page.html'
+    new_page_path = '../spider_auto_repair/Examples/Autorepair_New_Page.html'
     old_page = Page(old_page_path, 'html')
     new_page = Page(new_page_path, 'html')
     extracted_old_subtree = old_page.tree.getroot()[0][1][0][0]
@@ -419,8 +419,8 @@ def test_auto_repair():
         .strip())
 
 def test_auto_repair_lst():
-    old_page_path = '../src/Examples/Autorepair_Old_Page.html'
-    new_page_path = '../src/Examples/Autorepair_New_Page.html'
+    old_page_path = '../spider_auto_repair/Examples/Autorepair_Old_Page.html'
+    new_page_path = '../spider_auto_repair/Examples/Autorepair_New_Page.html'
     old_page = Page(old_page_path, 'html')
     new_page = Page(new_page_path, 'html')
     lst_extracted_old_subtrees = [old_page.tree.getroot()[0][1][0][0]]
