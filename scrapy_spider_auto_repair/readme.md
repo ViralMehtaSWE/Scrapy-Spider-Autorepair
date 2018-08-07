@@ -5,6 +5,10 @@ Spiders can become broken due to changes on the target site, which lead to diffe
 
 This tool is used to repair broken spiders and output extraction rules which can then be used to correctly extract data even when the layout has changed.
 
+# How to Install?
+
+Go the the command line and type - 
+root@user:~$ ```pip3 install scrapy-spider-auto-repair```
 #
 # How It Works?
 
@@ -12,7 +16,7 @@ All you need to do is import one function, auto\_repair\_lst.
 
 To do this, you can type,
 
-\&gt;\&gt;\&gt; from scrapy\_spider\_auto\_repair import auto\_repair\_lst
+```>>>``` from spider\_auto\_repair.auto\_repair\_api import auto\_repair\_lst
 
  This function, auto\_repair\_lst takes 4 parameters:
 
@@ -152,6 +156,34 @@ b'<div>\n                    <div>\n                        <p>Google</p>\n     
 ```
 
 #
+# Limitations:
+This tool assumes that the extracted content in leaf containers(the containers which has sentences and no other containers nested in it) present in both - the old page and new page remains the same(capitalization can be ignored). In the future, I will update the code to work even when the meaning of the content is equal or when the content is slightly changed. For example,
+if the content extracted from the old page is:
+```html
+<p>Hello World</p>
+```
+and the content present in the new page is in the form:
+```html
+<p>Hzllo World</p>
+```
+this code will fail as it needs exact match.
+However, when the data extracted from the old page is:
+```html
+<div>
+<p>OPEN</p>
+<p>source</p>
+</div>
+```
+and the data present in the new page is in the form:
+```html
+<div>
+    <div>
+        <p>source</p>
+    </div>
+    <p>open</p>
+</div>
+```
+, it works. Note that capitalization of letters is ignored and the content of the leaf nodes like <p> remains the same. Hence it works.
 # Contributions and Further Readings:
 
 If you are interested in finding out more about the algorithm behind this, feel free to visit my blog:
