@@ -11,7 +11,7 @@ setup(
                                                'Link to Dataset.txt',
                                                'top500domains.csv',
                                                'README.pdf')),
-    version='0.1.1',
+    version='0.1.2',
     description='Spiders can become broken due to changes\
                  on the target site, which lead to different\
                  page layouts (therefore, broken XPath and\
