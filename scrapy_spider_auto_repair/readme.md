@@ -8,7 +8,7 @@ This tool is used to repair broken spiders and output extraction rules which can
 # How to Install?
 
 Go the the command line and type - 
-root@user:~$ ```pip3 install scrapy-spider-auto-repair```
+```pip3 install scrapy-spider-auto-repair```
 #
 # How It Works?
 
@@ -16,7 +16,9 @@ All you need to do is import one function, auto\_repair\_lst.
 
 To do this, you can type,
 
-```>>>``` from spider\_auto\_repair.auto\_repair\_api import auto\_repair\_lst
+```python
+>>> from spider\_auto\_repair.auto\_repair\_api import auto\_repair\_lst
+```
 
  This function, auto\_repair\_lst takes 4 parameters:
 
@@ -68,13 +70,6 @@ Suppose the old page contains the following HTML code:
     </body>
 </html>
 ```
-
-
-
-
-
-
-
 
 
 And the new page contains the following HTML code:
