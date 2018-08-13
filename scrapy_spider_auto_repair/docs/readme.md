@@ -1,4 +1,7 @@
 #
+# Note:
+Please note that this code was written as part of GSoC 2018 and it is usable and complete. However, further improvements can be made. These improvements have been written in the ```Future Plans``` section below.
+#
 # Introduction
 
 Spiders can become broken due to changes on the target site, which lead to different page layouts (therefore, broken XPath and CSS extractors). Often however, the information content of a page remains, roughly, the same, just in a different form or layout.
@@ -10,7 +13,7 @@ This tool is used to repair broken spiders and output extraction rules which can
 Go the the command line and type - 
 ```pip3 install scrapy-spider-auto-repair```
 #
-# How It Works?
+# How to use this tool?
 
 All you need to do is import one function, ```auto_repair_lst```.
 
@@ -165,8 +168,8 @@ this code will fail as it needs exact match.
 However, when the data extracted from the old page is:
 ```html
 <div>
-<p>OPEN</p>
-<p>source</p>
+    <p>OPEN</p>
+    <p>source</p>
 </div>
 ```
 and the data present in the new page is in the form:
@@ -178,7 +181,15 @@ and the data present in the new page is in the form:
     <p>open</p>
 </div>
 ```
-, it works. Note that capitalization of letters is ignored and the content of the leaf nodes like <p> remains the same. Hence it works.
+, it works. Note that capitalization of letters is ignored and the content of the leaf nodes remains the same. Hence it works.
+Right now, it is necessary that the extracted data is enclosed in an HTML container. Hence, if you want to extract ```source```, be sure that the data returned by the parse method the broken spider returned ```<p>source</p>```.
+#
+# Future Plans:
+1. Right now, at many places in the code, two strings are compared to check if they are exactly equal. However, such comparisons should be modified in such a way that the edit distance between the two strings is compared and if it is lesser than some number, specified by the developer, then, they should be treated as being equal, oherwise, not.
+2. Another idea is, instead of using edit distance, it might be useful to see if the meanings of two strings is the same. To do this, we can use Google's universal-sentence-encoder: https://tfhub.dev/google/universal-sentence-encoder/2.
+3. Pre-process the HTML code to replace all images with their description specified using alternate text.
+4. It should be possible to extract text not enclosed within any HTML container.
+#
 # Contributions and Further Readings:
 
 If you are interested in finding out more about the algorithm behind this, feel free to visit my blog:
